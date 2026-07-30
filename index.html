@@ -200,11 +200,11 @@
         </div>
     </div>
 
-    <!-- 2. RETRO PLATFORM OYUNU -->
+    <!-- 2. RETRO PLATFORM OYUNU (GÜNCELLENDİ) -->
     <div id="platform-screen" class="screen">
         <button class="back-btn" onclick="exitGame()">⬅ Menü</button>
         <div class="game-container">
-            <div class="game-info">Altınları Topla!</div>
+            <div class="game-info">Altınları Topla! Skor: <span id="plat-score">0</span></div>
             <canvas id="platformCanvas" width="400" height="250"></canvas>
             <div class="touch-controls">
                 <div class="control-btn" id="plat-left">◀ Sol</div>
@@ -303,13 +303,23 @@
             }, 1000 / 60);
         }
 
-        /* --- 2. RETRO PLATFORM --- */
+        /* --- 2. RETRO PLATFORM (GÜNCELLENDİ: Platform, Aşağı Çekilmiş Altın ve Engeller Eklendi) --- */
         function startPlatformGame() {
             const canvas = document.getElementById('platformCanvas');
             const ctx = canvas.getContext('2d');
 
             let p = { x: 50, y: 150, w: 20, h: 20, vx: 0, vy: 0, speed: 3.5, jump: -8.5, gravity: 0.4 };
-            let coin = { x: Math.random() * 300 + 50, y: Math.random() * 100 + 50, r: 8, collected: false };
+            
+            // Altın (Biraz daha aşağı konuma ayarlandı)
+            let coin = { x: 250, y: 160, r: 8, collected: false };
+
+            // Sağdan sola hareket eden platform
+            let platformObj = { x: 450, y: 170, w: 120, h: 12, speed: 2 };
+
+            // Engel / Tuzak
+            let obstacle = { x: 500, y: 150, w: 16, h: 20, speed: 3 };
+
+            let platScore = 0;
             let moveLeft = false, moveRight = false;
 
             const setTouch = (id, startFn, endFn) => {
@@ -323,28 +333,55 @@
             setTouch('plat-left', () => moveLeft = true, () => moveLeft = false);
             setTouch('plat-right', () => moveRight = true, () => moveRight = false);
 
-            let jumpAction = () => { if (p.y >= 180) p.vy = p.jump; };
+            let jumpAction = () => { if (p.y >= 180 || (p.x >= platformObj.x && p.x <= platformObj.x + platformObj.w && Math.abs(p.y + p.h - platformObj.y) < 5)) p.vy = p.jump; };
             document.getElementById('plat-jump').ontouchstart = (e) => { e.preventDefault(); jumpAction(); };
             document.getElementById('plat-jump').onclick = jumpAction;
 
             currentGameInterval = setInterval(() => {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+                // Oyuncu hareketi
                 if (moveLeft) p.x -= p.speed;
                 if (moveRight) p.x += p.speed;
                 if (p.x < 0) p.x = 0;
                 if (p.x > canvas.width - p.w) p.x = canvas.width - p.w;
 
+                // Fizik ve Yerçekimi
                 p.vy += p.gravity;
                 p.y += p.vy;
-                if (p.y > 180) { p.y = 180; p.vy = 0; }
 
+                // Ana Zemin Çarpışması
+                if (p.y > 180) { 
+                    p.y = 180; 
+                    p.vy = 0; 
+                }
+
+                // Hareketli Platform Hareketi (Sağdan Sola)
+                platformObj.x -= platformObj.speed;
+                if (platformObj.x < -150) {
+                    platformObj.x = 450;
+                }
+
+                // Platform Üzerinde Durma Kontrolü
+                if (p.x + p.w > platformObj.x && p.x < platformObj.x + platformObj.w &&
+                    p.y + p.h >= platformObj.y && p.y + p.h <= platformObj.y + 10 && p.vy >= 0) {
+                    p.y = platformObj.y - p.h;
+                    p.vy = 0;
+                }
+
+                // Zemin Çizimi
                 ctx.fillStyle = '#059669';
                 ctx.fillRect(0, 200, canvas.width, 50);
 
+                // Hareketli Platform Çizimi
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillRect(platformObj.x, platformObj.y, platformObj.w, platformObj.h);
+
+                // Oyuncu Çizimi
                 ctx.fillStyle = '#10b981';
                 ctx.fillRect(p.x, p.y, p.w, p.h);
 
+                // Altın Çizimi ve Toplama Kontrolü (Aşağıda erişilebilir konumda)
                 if (!coin.collected) {
                     ctx.fillStyle = '#fbbf24';
                     ctx.beginPath();
@@ -354,13 +391,32 @@
                     let dist = Math.hypot((p.x + p.w/2) - coin.x, (p.y + p.h/2) - coin.y);
                     if (dist < p.w/2 + coin.r) {
                         coin.collected = true;
+                        platScore += 5;
+                        document.getElementById('plat-score').innerText = platScore;
                         setTimeout(() => {
                             coin.x = Math.random() * 300 + 50;
-                            coin.y = Math.random() * 100 + 40;
+                            coin.y = Math.random() * 80 + 120; // Erişilebilir alt yükseklik
                             coin.collected = false;
                         }, 400);
                     }
                 }
+
+                // Engel Hareketi ve Çarpışması
+                obstacle.x -= obstacle.speed;
+                if (obstacle.x < -30) {
+                    obstacle.x = 450;
+                }
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
+
+                // Engel Çarpışma Kontrolü (Can/Skor sıfırlama)
+                if (p.x < obstacle.x + obstacle.w && p.x + p.w > obstacle.x &&
+                    p.y < obstacle.y + obstacle.h && p.y + p.h > obstacle.y) {
+                    platScore = 0; // Çarpınca skor sıfırlanır
+                    document.getElementById('plat-score').innerText = platScore;
+                    obstacle.x = 450;
+                }
+
             }, 1000 / 60);
         }
 
