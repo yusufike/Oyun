@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro & Modern Game Hub</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a, #1e1b4b);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 20px;
+        }
+
+        .active {
+            display: flex;
+        }
+
+        /* ANA MENÜ STİLLERİ */
+        #main-menu h1 {
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+
+        #main-menu p {
+            color: #94a3b8;
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            max-width: 350px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+            text-align: center;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+            background: linear-gradient(135deg, #60a5fa, #2563eb);
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: #334155;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: none;
+            color: white;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .back-btn:hover {
+            background: #475569;
+        }
+
+        /* OYUN ALANLARI GENEL */
+        canvas {
+            background: #1e293b;
+            border: 4px solid #38bdf8;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        /* PUZZLE OYUNU STİLLERİ */
+        .puzzle-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 10px;
+            background: #334155;
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .puzzle-tile {
+            width: 100px;
+            height: 100px;
+            background: #3b82f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .puzzle-tile.empty {
+            background: #1e293b;
+            cursor: default;
+        }
+
+        .game-info {
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            color: #38bdf8;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ANA MENÜ EKRANI -->
+    <div id="main-menu" class="screen active">
+        <h1>GAME HUB</h1>
+        <p>Oynamak istediğin oyunu seç ve eğlenceye başla!</p>
+        <div class="menu-buttons">
+            <button class="btn" onclick="switchScreen('runner-screen')">🏃‍♂️ Endless Runner</button>
+            <button class="btn" onclick="switchScreen('platform-screen')">🍄 Retro Platform</button>
+            <button class="btn" onclick="switchScreen('puzzle-screen')">🧩 Sayı Bulmacası</button>
+        </div>
+    </div>
+
+    <!-- 1. ENDLESS RUNNER OYUNU -->
+    <div id="runner-screen" class="screen">
+        <button class="back-btn" onclick="exitGame()">⬅ Menüye Dön</button>
+        <div class="game-info">Skor: <span id="runner-score">0</span> (Zıplamak için Boşluk tuşu)</div>
+        <canvas id="runnerCanvas" width="800" height="400"></canvas>
+    </div>
+
+    <!-- 2. RETRO PLATFORM OYUNU -->
+    <div id="platform-screen" class="screen">
+        <button class="back-btn" onclick="exitGame()">⬅ Menüye Dön</button>
+        <div class="game-info">Altınları Topla! (Yön Tuşları / A-D ile hareket)</div>
+        <canvas id="platformCanvas" width="800" height="400"></canvas>
+    </div>
+
+    <!-- 3. PUZZLE OYUNU -->
+    <div id="puzzle-screen" class="screen">
+        <button class="back-btn" onclick="exitGame()">⬅ Menüye Dön</button>
+        <div class="game-info">Sayıları Sırala (1'den 8'e)</div>
+        <div class="puzzle-grid" id="puzzleGrid"></div>
+        <button class="btn" style="margin-top: 20px; padding: 10px 20px; font-size: 1rem;" onclick="initPuzzle()">Yeniden Başlat</button>
+    </div>
+
+    <script>
+        let currentGameInterval = null;
+
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+
+            if (screenId === 'runner-screen') startRunnerGame();
+            if (screenId === 'platform-screen') startPlatformGame();
+            if (screenId === 'puzzle-screen') initPuzzle();
+        }
+
+        function exitGame() {
+            clearInterval(currentGameInterval);
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('main-menu').classList.add('active');
+        }
+
+        /* --- 1. ENDLESS RUNNER MANTIĞI --- */
+        function startRunnerGame() {
+            const canvas = document.getElementById('runnerCanvas');
+            const ctx = canvas.getContext('2d');
+            let score = 0;
+            
+            let player = { x: 50, y: 300, width: 30, height: 40, vy: 0, gravity: 0.6, jump: -11, grounded: true };
+            let obstacles = [];
+            let frame = 0;
+
+            window.onkeydown = function(e) {
+                if (e.code === 'Space' && player.grounded) {
+                    player.vy = player.jump;
+                    player.grounded = false;
+                }
+            };
+
+            currentGameInterval = setInterval(() => {
+                frame++;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Zemin Çizimi
+                ctx.fillStyle = '#334155';
+                ctx.fillRect(0, 340, canvas.width, 60);
+
+                // Oyuncu Fizik
+                player.vy += player.gravity;
+                player.y += player.vy;
+                if (player.y > 300) { player.y = 300; player.vy = 0; player.grounded = true; }
+
+                // Oyuncu Çizimi
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillRect(player.x, player.y, player.width, player.height);
+
+                // Engel Üretimi
+                if (frame % 100 === 0) {
+                    obstacles.push({ x: canvas.width, y: 310, width: 25, height: 30, speed: 6 });
+                }
+
+                // Engelleri Hareket Ettir ve Çarpışma Kontrolü
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    let obs = obstacles[i];
+                    obs.x -= obs.speed;
+                    ctx.fillStyle = '#f43f5e';
+                    ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+
+                    // Çarpışma (Game Over / Reset)
+                    if (player.x < obs.x + obs.width && player.x + player.width > obs.x &&
+                        player.y < obs.y + obs.height && player.y + player.height > obs.y) {
+                        score = 0;
+                        obstacles = [];
+                    }
+
+                    if (obs.x + obs.width < 0) {
+                        obstacles.splice(i, 1);
+                        score += 10;
+                    }
+                }
+
+                document.getElementById('runner-score').innerText = score;
+            }, 1000 / 60);
+        }
+
+        /* --- 2. RETRO PLATFORM MANTIĞI --- */
+        function startPlatformGame() {
+            const canvas = document.getElementById('platformCanvas');
+            const ctx = canvas.getContext('2d');
+
+            let p = { x: 100, y: 250, w: 25, h: 25, vx: 0, vy: 0, speed: 4, jump: -10, gravity: 0.5 };
+            let coin = { x: Math.random() * 700 + 50, y: Math.random() * 200 + 100, r: 10, collected: false };
+            let keys = {};
+
+            window.onkeydown = e => keys[e.code] = true;
+            window.onkeyup = e => keys[e.code] = false;
+
+            currentGameInterval = setInterval(() => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Tuş Kontrolleri
+                if (keys['ArrowLeft'] || keys['KeyA']) p.x -= p.speed;
+                if (keys['ArrowRight'] || keys['KeyD']) p.x += p.speed;
+                if ((keys['ArrowUp'] || keys['Space'] || keys['KeyW']) && p.y >= 310) {
+                    p.vy = p.jump;
+                }
+
+                // Yerçekimi
+                p.vy += p.gravity;
+                p.y += p.vy;
+                if (p.y > 315) { p.y = 315; p.vy = 0; }
+
+                // Zemin
+                ctx.fillStyle = '#059669';
+                ctx.fillRect(0, 340, canvas.width, 60);
+
+                // Oyuncu
+                ctx.fillStyle = '#10b981';
+                ctx.fillRect(p.x, p.y, p.w, p.h);
+
+                // Altın Çizimi ve Toplama
+                if (!coin.collected) {
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.beginPath();
+                    ctx.arc(coin.x, coin.y, coin.r, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Çarpışma
+                    let dist = Math.hypot((p.x + p.w/2) - coin.x, (p.y + p.h/2) - coin.y);
+                    if (dist < p.w/2 + coin.r) {
+                        coin.collected = true;
+                        setTimeout(() => {
+                            coin.x = Math.random() * 700 + 50;
+                            coin.y = Math.random() * 200 + 100;
+                            coin.collected = false;
+                        }, 500);
+                    }
+                }
+            }, 1000 / 60);
+        }
+
+        /* --- 3. PUZZLE OYUNU MANTIĞI --- */
+        let puzzleTiles = [];
+        function initPuzzle() {
+            puzzleTiles = [1, 2, 3, 4, 5, 6, 7, '', 8]; // Basit başlangıç
+            puzzleTiles.sort(() => Math.random() - 0.5); // Karıştır
+            renderPuzzle();
+        }
+
+        function renderPuzzle() {
+            const grid = document.getElementById('puzzleGrid');
+            grid.innerHTML = '';
+            puzzleTiles.forEach((val, idx) => {
+                let tile = document.createElement('div');
+                tile.className = `puzzle-tile ${val === '' ? 'empty' : ''}`;
+                tile.innerText = val;
+                tile.onclick = () => movePuzzleTile(idx);
+                grid.appendChild(tile);
+            });
+        }
+
+        function movePuzzleTile(idx) {
+            // Çok basit bir yer değiştirme mantığı (Boşluk komşuluğu)
+            let emptyIdx = puzzleTiles.indexOf('');
+            let validMoves = [emptyIdx - 1, emptyIdx + 1, emptyIdx - 3, emptyIdx + 3];
+            
+            if (validMoves.includes(idx)) {
+                puzzleTiles[emptyIdx] = puzzleTiles[idx];
+                puzzleTiles[idx] = '';
+                renderPuzzle();
+            }
+        }
+    </script>
+</body>
+</html>
